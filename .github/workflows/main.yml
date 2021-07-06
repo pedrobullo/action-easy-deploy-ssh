@@ -1,0 +1,40 @@
+name: Deploy
+
+on: [push]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Copy file via scp
+        uses: appleboy/scp-action@master
+        env:
+          ## Droplet/Server IP
+          HOST: ${{ secrets.HOST }}
+          ## Droplet/Server User (root in most cases)
+          USERNAME: ${{ secrets.USERNAME }}
+          ## Droplet/Server Por (22 in most cases)
+          PORT: ${{ secrets.PORT }}
+          ## SSH PRIVATE KEY (Copy from: cat ~./ssh/id_rsa)
+          KEY: ${{ secrets.SSHKEY }}
+        with:
+          source: "."
+          ## Make sure the path to my-app
+          target: "/root/my-app"
+
+      - name: Executing remote  command
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.USERNAME }}
+          PORT: ${{ secrets.PORT }}
+          KEY: ${{ secrets.SSHKEY }}
+          ## Runnign commands from my-app folder
+          script: |
+            cd my-app
+            docker-compose up -d --build app
+            docker image prune -a -f
